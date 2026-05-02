@@ -8,10 +8,25 @@ You have two options — pick the one that suits you:
 
 | File | Best for |
 |------|----------|
-| `Get-WebMedia.cmd` | Everyone. Double-click, paste a link, done. |
-| `Get-WebMedia.ps1` | Power users who want full control via command-line parameters. |
+| `Get-WebMedia.cmd` | Everyone. Double-click, follow the prompts, done. |
+| `Get-WebMedia.ps1` | Power users. Pass parameters directly for full control. |
 
 > **Both files are completely self-contained.** The `.cmd` file embeds the PowerShell script inside itself — no extra files needed. You only need the one you choose.
+
+## 🖱️ .cmd vs ⌨️ .ps1 — What's the difference?
+
+| | `Get-WebMedia.cmd` | `Get-WebMedia.ps1` |
+|--|--------------------|--------------------|
+| **How it works** | Interactive — double-click, follow prompts | Parameter-based — pass arguments directly |
+| **Interface language** | Bilingual (auto-detects Russian or English) | English only |
+| **Video format** | Prefers MP4 (H.264/AAC) | Best available (MKV, original codecs) |
+| **Audio format** | MP3 | Best available (no conversion) |
+| **Resolution** | Up to 1080p | Up to 1080p (adjustable) |
+| **Batch downloads** | Drop a `links.txt` in Downloads | `-File "path\to\urls.txt"` |
+| **Cookies** | Choose from a menu | `-CookiesFrom firefox` |
+| **Tool updates** | Automatic, once per day | Opt-in via environment variable |
+
+> **In short:** `.cmd` guides you through it. `.ps1` expects you to know what you want.
 
 ## ⚡ Quick Start (For Everyone)
 
@@ -19,10 +34,10 @@ You have two options — pick the one that suits you:
 2. **Double-click it**
 3. **Paste a video URL** when prompted
 4. **Choose your mode:**
-   - `[1]` Video (MP4, up to 1080p)
-   - `[2]` Audio only (MP3)
+   - `[1]` Video (prefers MP4, up to 1080p)
+   - `[2]` Audio (MP3)
 5. **Optionally select a browser** for cookies (needed for age-restricted content)
-6. **Done!** Files land in `Downloads\yt-dlp\`
+6. **Done!** Files land in `Downloads\yt-dlp`
 
 ### 💡 Batch Downloads
 To download multiple videos at once:
@@ -32,59 +47,68 @@ To download multiple videos at once:
 
 ## 🔧 Requirements
 
-- **Windows 10/11**
-- **PowerShell 5.1** (built into Windows)
-- **[winget](https://github.com/microsoft/winget-cli)** (built into modern Windows 10/11)
+- **Windows 10 or higher**
+- **Windows PowerShell 5.1** (built into Windows) or cross-platform **[PowerShell](https://github.com/PowerShell/PowerShell)**
+- **[WinGet](https://github.com/microsoft/winget-cli)** (built into modern Windows 10/11)
 
-The script automatically installs these tools on first run:
+The script automatically installs these tools on the first run through WinGet:
 - **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** — Download engine
 - **[FFmpeg](https://ffmpeg.org/)** — Media processing
 - **[Deno](https://deno.land/)** — JavaScript runtime for site-specific extractors
 
 ## ✨ Features
 
-- **Bilingual interface** — Automatically detects Russian or English
-- **Auto-updating tools** — Checks for updates once per day
-- **Cookie extraction** — Firefox, Opera, Brave, Vivaldi, Yandex (for age-restricted content)
-- **Batch downloads** — From `links.txt` or multiple URLs
-- **Resolution control** — 144p through 8K, with min/max limits
-- **Format selection** — MP4/H.264/AAC or original codecs
-- **Audio extraction** — MP3, M4A, AAC, Opus, FLAC, WAV, Vorbis
-- **Playlist support** — Single video or full playlist
-- **Proxy support** — Automatic system proxy detection or manual config
-- **Error logging** — Detailed logs for troubleshooting
+- Grabs the best quality video up to your chosen resolution
+- Extracts audio in your preferred format (MP3, M4A, FLAC, etc.)
+- Outputs MP4/H.264/AAC for best compatibility, or keeps the original format
+- Works through proxies and detects system proxy settings automatically
+- Pulls cookies from your browser for age-restricted or members-only content
+- Handles batch downloads from text files or multiple URLs
+- Automatically installs and updates required tools via winget
 
 ## 📖 Advanced Usage (`Get-WebMedia.ps1`)
 
 If you prefer the PowerShell script directly, here are some examples:
 
 ```powershell
-# Single video (default: up to 1080p, original format)
+# Download a single video
 .\Get-WebMedia.ps1 "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
-# Multiple videos
+# Grab several videos at once
 .\Get-WebMedia.ps1 -Url "https://youtu.be/abc123", "https://youtu.be/def456"
 
-# From a text file
-.\Get-WebMedia.ps1 -File "urls.txt"
-
-# 4K video forced to MP4
-.\Get-WebMedia.ps1 "https://youtu.be/abc123" -MaxResolution 2160 -MP4Output
+# Work through a list of URLs from a file
+.\Get-WebMedia.ps1 -File "links.txt"
 
 # Audio only, converted to MP3
 .\Get-WebMedia.ps1 "https://youtu.be/abc123" -AudioOnly -AudioFormat mp3
 
-# Entire playlist at 720p
-.\Get-WebMedia.ps1 "https://youtube.com/playlist?list=..." -FullPlaylist -MaxResolution 720
+# Audio only, best available quality (no conversion)
+.\Get-WebMedia.ps1 "https://youtu.be/abc123" -AudioOnly -AudioFormat best
 
-# Age-restricted content (Firefox must be closed)
-.\Get-WebMedia.ps1 "https://youtu.be/restricted" -CookiesFrom firefox
+# An entire playlist capped at 720p
+.\Get-WebMedia.ps1 "https://youtube.com/playlist?list=..." -MaxResolution 720
 
-# Custom output folder
+# 720p video saved as MP4 if possible
+.\Get-WebMedia.ps1 "https://youtu.be/abc123" -MaxResolution 720 -MP4Output
+
+# Video at minimum 720p, maximum 1080p
+.\Get-WebMedia.ps1 "https://youtu.be/abc123" -MinResolution 720 -MaxResolution 1080
+
+# Age-restricted content using Firefox cookies (skipping the prompt)
+.\Get-WebMedia.ps1 "https://youtu.be/restricted" -CookiesFrom firefox -SkipBrowserPrompt
+
+# Route traffic through a SOCKS5 proxy
+.\Get-WebMedia.ps1 "https://youtu.be/abc123" -ProxyAddress "socks5://127.0.0.1:1080"
+
+# Include subtitles and cover art
+.\Get-WebMedia.ps1 "https://youtu.be/abc123" -ExtraArgs "--write-subs --embed-thumbnail"
+
+# Save to a custom directory
 .\Get-WebMedia.ps1 "https://youtu.be/abc123" -OutputDir "D:\Videos"
 
-# With subtitles and embedded cover art
-.\Get-WebMedia.ps1 "https://youtu.be/abc123" -ExtraArgs "--write-subs --sub-lang en --embed-thumbnail"
+# Overwrite existing files instead of skipping
+.\Get-WebMedia.ps1 "https://youtu.be/abc123" -Overwrite
 
-# Update tools only, no download
+# Update tools and exit
 .\Get-WebMedia.ps1 -UpdateTools

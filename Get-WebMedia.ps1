@@ -26,7 +26,7 @@
 .PARAMETER File
     Path to a text file with URLs listed one per line.
 .PARAMETER OutputDir
-    Where downloaded files go.
+    Where downloaded and temporary files go.
     Default: $env:USERPROFILE\Downloads\yt-dlp
 .PARAMETER AudioOnly
     Download just the audio track (video gets tossed).
@@ -40,16 +40,17 @@
     Default: 1080
 .PARAMETER MinResolution
     Minimum video height in pixels (144-4320).
-    Falls back to best available if the minimum isn't met.
+    Download will fail if the minimum isn't met.
     Default: 0 (no minimum)
 .PARAMETER MP4Output
-    Force MP4 container with H.264 video and AAC audio for wide compatibility.
-    Falls back to MKV with original codecs if H.264 isn't available.
+    Prefer MP4 container with H.264 video and AAC audio for wide compatibility.
+    If AAC audio isn't available, the best audio track will be downloaded and re-encoded.
+    Falls back to MKV with best available audio and video if H.264 video isn't available.
 .PARAMETER NoProxy
-    Bypass all proxies completely.
+    Bypass all proxies completely and force direct connection.
+    Both the YTDLP_PROXY environment variable and system proxy settings will be ignored
 .PARAMETER ProxyAddress
     Specific proxy server to route through.
-    Also checks the YTDLP_PROXY environment variable and system proxy settings.
     Examples: http://proxy:8080, socks5://127.0.0.1:1080
 .PARAMETER CookiesFrom
     Browser name to extract cookies from for authentication.
@@ -62,15 +63,17 @@
     Skip the "close browser" prompt when using -CookiesFrom.
     Useful for scripting and automation.
 .PARAMETER UpdateTools
-    Update yt-dlp, ffmpeg, and deno to their latest versions.
-    Also checks for updates automatically once per day when YTDLP_CHECK_UPDATES=1.
+    Force update checks for yt-dlp, ffmpeg and deno before download.
+    Can be used with or without -Url argument. Useful for automation.
 .PARAMETER FullPlaylist
-    Download the whole playlist instead of just the first video.
+    Download the whole playlist when a link to a video in the playlist is passed.
+    Default: off
 .PARAMETER Overwrite
     Replace existing files rather than skipping them.
 .PARAMETER ExtraArgs
     Additional yt-dlp arguments passed straight through to the tool.
-    Example: "--write-subs --sub-lang en --embed-thumbnail"
+    May produce misleading output or unexpected errors. Use carefully.
+    Example: "--write-subs --embed-thumbnail"
 .EXAMPLE
     # Download a single video
     .\Get-WebMedia.ps1 "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
@@ -79,7 +82,7 @@
     .\Get-WebMedia.ps1 -Url "https://youtu.be/abc123", "https://youtu.be/def456"
 .EXAMPLE
     # Work through a list of URLs from a file
-    .\Get-WebMedia.ps1 -File "urls.txt"
+    .\Get-WebMedia.ps1 -File "links.txt"
 .EXAMPLE
     # Audio only, converted to MP3
     .\Get-WebMedia.ps1 "https://youtu.be/abc123" -AudioOnly -AudioFormat mp3
@@ -88,10 +91,10 @@
     .\Get-WebMedia.ps1 "https://youtu.be/abc123" -AudioOnly -AudioFormat best
 .EXAMPLE
     # An entire playlist capped at 720p
-    .\Get-WebMedia.ps1 "https://youtube.com/playlist?list=..." -FullPlaylist -MaxResolution 720
+    .\Get-WebMedia.ps1 "https://youtube.com/playlist?list=..." -MaxResolution 720
 .EXAMPLE
-    # 4K video saved as MP4
-    .\Get-WebMedia.ps1 "https://youtu.be/abc123" -MaxResolution 2160 -MP4Output
+    # 720 video saved as MP4 if possible
+    .\Get-WebMedia.ps1 "https://youtu.be/abc123" -MaxResolution 720 -MP4Output
 .EXAMPLE
     # Video at minimum 720p, maximum 1080p
     .\Get-WebMedia.ps1 "https://youtu.be/abc123" -MinResolution 720 -MaxResolution 1080
@@ -103,21 +106,26 @@
     .\Get-WebMedia.ps1 "https://youtu.be/abc123" -ProxyAddress "socks5://127.0.0.1:1080"
 .EXAMPLE
     # Include subtitles and cover art
-    .\Get-WebMedia.ps1 "https://youtu.be/abc123" -ExtraArgs "--write-subs --sub-lang en --embed-thumbnail"
+    .\Get-WebMedia.ps1 "https://youtu.be/abc123" -ExtraArgs "--write-subs --embed-thumbnail"
 .EXAMPLE
-    # Save to a custom folder
+    # Save to a custom directory
     .\Get-WebMedia.ps1 "https://youtu.be/abc123" -OutputDir "D:\Videos"
 .EXAMPLE
     # Overwrite existing files instead of skipping
     .\Get-WebMedia.ps1 "https://youtu.be/abc123" -Overwrite
 .EXAMPLE
-    # Just update the tools, nothing else
+    # Update tools and exit
     .\Get-WebMedia.ps1 -UpdateTools
 .NOTES
     Filename: Get-WebMedia.ps1
-    Requirements: PowerShell 5.1+ and winget
+
+    Requirements:
+        - Windows 10 or higher
+        - Windows PowerShell 5.1 (built into Windows) or cross-platform PowerShell
+        - WinGet (built into Windows)
+
     Environment variables:
-      YTDLP_CHECK_UPDATES - Set to 1 to enable automatic daily update checks
+      YTDLP_CHECK_UPDATES - Set to 1 to enable automatic update checks (at every script launch, but no more often than 1 day)
       YTDLP_PROXY - Proxy address (overrides system proxy, superseded by -ProxyAddress)
 
 .LINK
@@ -146,7 +154,7 @@ param(
     [ValidateRange(144, 4320)]
     [int]$MaxResolution = 1080,
 
-    [Parameter(HelpMessage="Minimum video resolution in pixels. Falls back to best available if not met.")]
+    [Parameter(HelpMessage="Minimum required video resolution in pixels.")]
     [ValidateRange(144, 4320)]
     [int]$MinResolution = 0,
 
@@ -168,8 +176,8 @@ param(
 
     [Parameter(HelpMessage="Update yt-dlp, ffmpeg, and deno to latest versions")]
     [switch]$UpdateTools,
-    
-    [Parameter(HelpMessage="Download entire playlist instead of just first video")]
+
+    [Parameter(HelpMessage="Download entire playlist.")]
     [switch]$FullPlaylist,
 
     [Parameter(HelpMessage="Force overwrite of existing files")]
