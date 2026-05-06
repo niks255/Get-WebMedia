@@ -2,6 +2,16 @@
 
 A user-friendly media downloader for YouTube and hundreds of other sites. Powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 
+## ✨ Features
+
+- Grabs the best quality video up to your chosen resolution
+- Extracts audio in your preferred format (MP3, M4A, FLAC, etc.)
+- Outputs MP4/H.264/AAC for best compatibility, or keeps the original format
+- Works through proxies and detects system proxy settings automatically
+- Pulls cookies from your browser for age-restricted or members-only content
+- Handles batch downloads from text files or multiple URLs
+- Automatically installs and updates required tools via winget
+
 ## 📦 What's in this repo?
 
 You have two options — pick the one that suits you:
@@ -19,12 +29,12 @@ You have two options — pick the one that suits you:
 |--|--------------------|--------------------|
 | **How it works** | Interactive — double-click, follow prompts | Parameter-based — pass arguments directly |
 | **Interface language** | Bilingual (auto-detects Russian or English) | English only |
-| **Video format** | Prefers MP4 (H.264/AAC) | Best available (MKV, original codecs) |
-| **Audio format** | MP3 | Best available (no conversion) |
-| **Resolution** | Up to 1080p | Up to 1080p (adjustable) |
+| **Video format** | MP4 (H.264/AAC), MKV fallback | Adjustable, default: best available (MKV) |
+| **Audio format** | MP3 | Adjustable, default: best available |
+| **Resolution** | Up to 1080p | Adjustable, default: up to 1080p |
 | **Batch downloads** | Drop a `links.txt` in Downloads | `-File "path\to\urls.txt"` |
 | **Cookies** | Choose from a menu | `-CookiesFrom firefox` |
-| **Tool updates** | Automatic, once per day | Opt-in via environment variable |
+| **Tool updates** | Checks on launch (max once per day) | Opt-in via environment variable |
 
 > **In short:** `.cmd` guides you through it. `.ps1` expects you to know what you want.
 
@@ -41,7 +51,7 @@ You have two options — pick the one that suits you:
 
 ### 💡 Batch Downloads
 To download multiple videos at once:
-1. Create a file called `links.txt` in your Downloads folder
+1. Create a file called `links.txt` in your Downloads folder (`C:\Users\<YourName>\Downloads`)
 2. Paste your URLs (one per line)
 3. Run `Get-WebMedia.cmd` — it will detect the file and ask if you want to use it
 
@@ -51,20 +61,12 @@ To download multiple videos at once:
 - **Windows PowerShell 5.1** (built into Windows) or cross-platform **[PowerShell](https://github.com/PowerShell/PowerShell)**
 - **[WinGet](https://github.com/microsoft/winget-cli)** (built into modern Windows 10/11)
 
+> **Note:** If you're on an older version of Windows 10 or an LTSC edition, you may need to install the [App Installer](https://apps.microsoft.com/detail/9nblggh4nns1) package from the Microsoft Store to get WinGet.
+
 The script automatically installs these tools on the first run through WinGet:
 - **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** — Download engine
 - **[FFmpeg](https://ffmpeg.org/)** — Media processing
 - **[Deno](https://deno.land/)** — JavaScript runtime for site-specific extractors
-
-## ✨ Features
-
-- Grabs the best quality video up to your chosen resolution
-- Extracts audio in your preferred format (MP3, M4A, FLAC, etc.)
-- Outputs MP4/H.264/AAC for best compatibility, or keeps the original format
-- Works through proxies and detects system proxy settings automatically
-- Pulls cookies from your browser for age-restricted or members-only content
-- Handles batch downloads from text files or multiple URLs
-- Automatically installs and updates required tools via winget
 
 ## 📖 Advanced Usage (`Get-WebMedia.ps1`)
 
