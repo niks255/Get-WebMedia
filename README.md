@@ -4,13 +4,14 @@ A user-friendly media downloader for YouTube and hundreds of other sites. Powere
 
 ## ✨ Features
 
-- Grabs the best quality video up to your chosen resolution
-- Extracts audio in your preferred format (MP3, M4A, FLAC, etc.)
-- Outputs MP4/H.264/AAC for best compatibility, or keeps the original format
-- Works through proxies and detects system proxy settings automatically
-- Pulls cookies from your browser for age-restricted or members-only content
-- Handles batch downloads from text files or multiple URLs
-- Automatically installs and updates required tools via winget
+- Batch downloads from a text file or multiple URLs
+- Download video or just audio
+- Adjustable format and resolution, sensible defaults
+- System proxy auto-detection or manual proxy config
+- Auto-install of required tools on first launch (powered by [WinGet](https://github.com/microsoft/winget-cli))
+- Browser cookie extraction for age-restricted or members-only content
+
+> **Note:** Cookie extraction from Chrome and some Chromium-based browsers is currently broken due to security changes. Firefox works reliably. See [yt-dlp#10927](https://github.com/yt-dlp/yt-dlp/issues/10927) for details.
 
 ## 📦 What's in this repo?
 
