@@ -11,8 +11,6 @@ A user-friendly media downloader for YouTube and hundreds of other sites. Powere
 - Auto-install of required tools on first launch (powered by [WinGet](https://github.com/microsoft/winget-cli))
 - Browser cookie extraction for age-restricted or members-only content
 
-> **Note:** Cookie extraction from Chrome and some Chromium-based browsers is currently broken due to security changes. Firefox works reliably. See [yt-dlp#10927](https://github.com/yt-dlp/yt-dlp/issues/10927) for details.
-
 ## 📦 What's in this repo?
 
 You have two options — pick the one that suits you:
@@ -99,6 +97,8 @@ If you prefer the PowerShell script directly, here are some examples:
 .\Get-WebMedia.ps1 "https://youtu.be/abc123" -MinResolution 720 -MaxResolution 1080
 
 # Age-restricted content using Firefox cookies (skipping the prompt)
+# Cookie extraction from Chrome and some Chromium-based browsers is currently broken.
+# See https://github.com/yt-dlp/yt-dlp/issues/10927 for details.
 .\Get-WebMedia.ps1 "https://youtu.be/restricted" -CookiesFrom firefox -SkipBrowserPrompt
 
 # Route traffic through a SOCKS5 proxy
