@@ -645,10 +645,14 @@ try {
 
 # Base arguments
 $ytArgs = @(
-    '--progress', '--quiet', '--verbose',
+    '--progress', '--verbose',
     '--encoding', 'UTF-8', "--embed-metadata",
     "--paths", "temp:temp_files", "--paths", "`"${OutputDir}`""
 )
+
+if (-not $DebugMode) {
+    $ytArgs += @('--quiet')
+}
 
 if ($AudioOnly) {
     $ytArgs += @('--output', "`"%(title)s.%(ext)s`"")
