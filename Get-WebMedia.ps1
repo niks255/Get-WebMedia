@@ -425,8 +425,9 @@ try {
 # Base arguments
 $ytArgs = @(
     '--progress', '--verbose',
-    '--encoding', 'UTF-8', "--embed-metadata",
-    "--paths", "temp:temp_files", "--paths", "`"${OutputDir}`""
+    '--encoding', 'UTF-8',
+    "--paths", "temp:temp_files", 
+    "--paths", "`"${OutputDir}`""
 )
 
 if (-not $DebugMode) {
@@ -527,8 +528,9 @@ if ($AudioOnly) {
         }
     } else {
         $ytArgs += @(
-            "--format", "`"bestvideo${resolutionFilter}+bestaudio/best${resolutionFilter}`"",
-            "--merge-output-format", "mkv"
+            "--format", "`"bestvideo${resolutionFilter}+bestaudio/best${resolutionFilter}`""
+            "--merge-output-format", "mkv",
+            "--remux-video", "mkv"
         )
         
         if ($MinResolution -gt 0) {
