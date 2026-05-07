@@ -726,12 +726,10 @@ if ($AudioOnly) {
 
     if ($MP4Output) {
         $formatString = @(
-            # Case 1: H.264 + AAC → MP4 with stream copy (no re-encode)
             "bestvideo${resolutionFilter}[vcodec^=avc1]+bestaudio[acodec^=mp4a]",
-            # Case 2: H.264 + non-AAC audio → MP4 (video copied, audio → AAC)
             "bestvideo${resolutionFilter}[vcodec^=avc1]+bestaudio",
-            # Case 3: No H.264 → MKV, no conversion at all
-            "bestvideo${resolutionFilter}+bestaudio"
+            "bestvideo${resolutionFilter}+bestaudio",
+            "best${resolutionFilter}"
         ) -join '/'
         
         $ytArgs += @(
@@ -746,7 +744,7 @@ if ($AudioOnly) {
         }
     } else {
         $ytArgs += @(
-            "--format", "`"bestvideo${resolutionFilter}+bestaudio`"",
+            "--format", "`"bestvideo${resolutionFilter}+bestaudio/best${resolutionFilter}`"",
             "--merge-output-format", "mkv"
         )
         
