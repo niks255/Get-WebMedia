@@ -430,11 +430,6 @@ function Print-Diag {
     Write-Host $Message -ForegroundColor Magenta
 }
 
-function Print-Muted {
-    param([string]$Message)
-    Write-Host $Message -ForegroundColor DarkGray
-}
-
 function Print-Error {
     param([string]$Message)
     Write-Host $Message -ForegroundColor Red
@@ -451,7 +446,35 @@ function Update-Path {
     $env:PATH = (@(
         [System.Environment]::GetEnvironmentVariable("Path", "Machine")
         [System.Environment]::GetEnvironmentVariable("Path", "User")
+        $PSScriptRoot
     ) -join ';' -split ';' | Select-Object -Unique) -join ';'
+}
+
+function IsUpdTime {
+    if ($env:YTDLP_CHECK_UPDATES -ne 1) { return $false }
+
+    $updateCheckFile = Join-Path -Path $env:TEMP -ChildPath "gwm_upd_check"
+
+    if (Test-Path $updateCheckFile) {
+        try {
+            $lastCheck = Get-Content $updateCheckFile -Raw
+            $lastCheckDate = [DateTime]::ParseExact($lastCheck.Trim(), "yyyy-MM-dd", $null)
+            $today = [DateTime]::Today
+            
+            if ($today -gt $lastCheckDate) {
+                $today.ToString("yyyy-MM-dd") | Out-File -FilePath $updateCheckFile -Encoding UTF8 -Force
+                return $true
+            }
+
+            return $false
+        } catch {
+            (Get-Date).ToString("yyyy-MM-dd") | Out-File -FilePath $updateCheckFile -Encoding UTF8 -Force
+            return $true
+        }
+    } else {
+        (Get-Date).ToString("yyyy-MM-dd") | Out-File -FilePath $updateCheckFile -Encoding UTF8 -Force
+        return $true
+    }
 }
 
 # Helper function to install/update via winget
@@ -462,58 +485,144 @@ function Install-WithWinget {
     ) 
        
     if (Get-Command winget -ErrorAction SilentlyContinue) {
-        Print-Info "Installing/updating ${ToolName}..."
-
         winget install $PackageName --accept-package-agreements --accept-source-agreements 2>&1 |
             Where-Object { $_.ToString().Trim() -ne '' -and $_ -notmatch '^\s*-+\s*$' } |
             Write-Debug
         $exitCode = $LASTEXITCODE
+
         Write-Debug "WinGet returned ${exitCode}"
 
         # Winget exit codes https://github.com/microsoft/winget-cli/blob/master/doc/windows/package-manager/winget/returnCodes.md
-        $APPINSTALLER_CLI_ERROR_UPDATE_NOT_APPLICABLE = -1978335189
-        $success = ($exitCode -eq 0 -or $exitCode -eq $APPINSTALLER_CLI_ERROR_UPDATE_NOT_APPLICABLE)
-
-        if ($success) {
-            if ($exitCode -eq 0) {
-                Print-Success "  Successfully installed/updated ${ToolName}"
-            } else {
-                Print-Success "  ${ToolName} is already up to date"
-            }
-        } else {
-            Print-Error "  Failed to install ${ToolName} (Exit code: ${exitCode})"
-        }
+        $UPDATE_NOT_APPLICABLE = -1978335189
+        $SUCCESS = 0
         Update-Path
-        return $success
-    } else {
-        Write-Warning "winget is not available."
-        Print-Muted "Please install ${ToolName} manually:"
-        switch ($ToolName) {
-            "yt-dlp"  { Print-Muted "  https://github.com/yt-dlp/yt-dlp/releases/latest" }
-            "deno"    { Print-Muted "  https://github.com/denoland/deno/releases/latest" }
-            "ffmpeg"  { Print-Muted "  https://github.com/yt-dlp/FFmpeg-Builds/releases/latest" }
-        }
 
+        switch ($exitCode) {
+            $SUCCESS {
+                Print-Success "SUCCESS: ${ToolName} (Installed/updated successfully)"
+                return $true
+            }
+            $UPDATE_NOT_APPLICABLE {
+                Print-Success "SUCCESS: ${ToolName} (Already up-to-date)"
+                return $true
+            }
+            default {
+                Print-Error "ERROR: ${ToolName} failed to download/install (WinGet exit code: ${exitCode})"
+                return $false
+            }
+        }
+    } else {
+        Print-Error "ERROR: ${ToolName} failed to download/install (WinGet is not available)"
         return $false
     }
 }
 
-function Install-Tool {
+function Install-Tools {
     param(
-        [string]$ToolName, 
-        [string]$PackageName
+        [switch]$Update
     )
-    if (Get-Command $ToolName -ErrorAction SilentlyContinue) {
-        if ($UpdateTools) {
-            Print-Info "Checking for updates for ${ToolName}"
-        } else {
-            return $true
+
+    Update-Path
+
+    $Tools = @(
+        @{
+            Name = "yt-dlp"
+            PkgName = "yt-dlp.yt-dlp"
+            URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
+            ExeNames = @("yt-dlp.exe")
+        },
+        @{
+            Name = "deno"
+            PkgName = "DenoLand.Deno"
+            URL = "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip"
+            ExeNames = @("deno.exe")
+        },
+        @{
+            Name = "ffmpeg"
+            PkgName = "yt-dlp.FFmpeg"
+            URL = "https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip"
+            ExeNames = @("ffmpeg.exe", "ffprobe.exe")
         }
-    } else {
-        Write-Warning "${ToolName} is not installed or not found in PATH"
+    ) | ForEach-Object {
+        $available = $true
+        $missingExes = @()
+        foreach ($exe in $_.ExeNames) {
+            if (-not (Get-Command $exe -ErrorAction SilentlyContinue)) {
+                $available = $false
+                $missingExes += $exe
+            }
+        }
+        
+        [PSCustomObject]@{
+            Name        = $_.Name
+            PkgName     = $_.PkgName
+            URL         = $_.URL
+            ExeNames    = $_.ExeNames
+            MissingExes = $missingExes
+            Available   = $available
+        }
     }
 
-    return Install-WithWinget -ToolName $ToolName -PackageName $PackageName
+    if (-not $Update) {
+        $Tools = $Tools | Where-Object { -not $_.Available }
+    }
+
+    if (@($Tools).Count -eq 0) {
+        return $true
+    }
+
+    if ($Update) {
+        Print-Header "Checking/updating tools"
+    } else {
+        $allMissingExes = $Tools | ForEach-Object { $_.MissingExes } | Where-Object { $_ }
+        $exeList = ($allMissingExes | ForEach-Object { $_ }) -join ', '
+        $exeCount = @($allMissingExes).Count
+        $exeWord = if ($exeCount -eq 1) { "executable is" } else { "executables are" }
+        Print-Diag "The following ${exeWord} not found in PATH: ${exeList}"
+        Print-Header "Installing missing tools"
+    }
+
+    $allInstalled = $true
+
+    foreach ($tool in $Tools) {
+        if (-not (Install-WithWinget -ToolName $tool.Name -PackageName $tool.PkgName)) {
+            $allInstalled = $false
+        }
+    }
+
+    if ($allInstalled) {
+        if ($Update) { 
+            Print-Header "Install/update complete!"
+        } else {
+            Print-Header "Install complete!"
+        }
+    } else {
+        Print-Error "Failed to install the required tools!"
+        Print-Header "Please download the following tools manually"
+
+        $missing = @()
+        foreach ($tool in $Tools) {
+            # Re-check which specific exes are still missing after winget attempt
+            $stillMissing = @()
+            foreach ($exe in $tool.ExeNames) {
+                if (-not (Get-Command $exe -ErrorAction SilentlyContinue)) {
+                    $stillMissing += $exe
+                }
+            }
+            if ($stillMissing.Count -gt 0) {
+                Print-Info " $($tool.Name): $($tool.URL)"
+                $missing += $stillMissing
+            }
+        }
+
+        $exeList = $missing -join ', '
+        $exeCount = @($missing).Count
+        $isAre = if ($exeCount -eq 1) { "is" } else { "are" }
+
+        Print-Header "Then ensure that ${exeList} ${isAre} in the script folder or added to PATH"
+    }
+
+    return $allInstalled
 }
 
 function Get-ProxyAddress {
@@ -545,33 +654,6 @@ function Get-ProxyAddress {
     return $null
 }
 
-function IsUpdTime {
-    if ($env:YTDLP_CHECK_UPDATES -ne 1) { return $false }
-
-    $updateCheckFile = Join-Path -Path $env:TEMP -ChildPath "gwm_upd_check"
-
-    if (Test-Path $updateCheckFile) {
-        try {
-            $lastCheck = Get-Content $updateCheckFile -Raw
-            $lastCheckDate = [DateTime]::ParseExact($lastCheck.Trim(), "yyyy-MM-dd", $null)
-            $today = [DateTime]::Today
-            
-            if ($today -gt $lastCheckDate) {
-                $today.ToString("yyyy-MM-dd") | Out-File -FilePath $updateCheckFile -Encoding UTF8 -Force
-                return $true
-            }
-
-            return $false
-        } catch {
-            (Get-Date).ToString("yyyy-MM-dd") | Out-File -FilePath $updateCheckFile -Encoding UTF8 -Force
-            return $true
-        }
-    } else {
-        (Get-Date).ToString("yyyy-MM-dd") | Out-File -FilePath $updateCheckFile -Encoding UTF8 -Force
-        return $true
-    }
-}
-
 # Parse URLs from file or single URL parameter
 if ($File) {
     Print-Info "Reading URLs from: ${File}"
@@ -587,18 +669,14 @@ if ($File) {
 
 $UpdateTools = ($UpdateTools -or (IsUpdTime))
 
-if ($UpdateTools) { Print-Header "Checking/updating tools" }
-Update-Path
-$allToolsAvailable = (Install-Tool -ToolName "yt-dlp" -PackageName "yt-dlp.yt-dlp") -and `
-                     (Install-Tool -ToolName "deno" -PackageName "DenoLand.Deno") -and `
-                     (Install-Tool -ToolName "ffmpeg" -PackageName "yt-dlp.FFmpeg")
-if ($UpdateTools) {    
-    Print-Header "Tool check complete!"
+Print-Info "Checking if required tools are present"
+$ToolsAvailable = if ($UpdateTools) { Install-Tools -Update } else { Install-Tools }
+
+if ($ToolsAvailable) {
+    Print-Info "All tools are present!"
 } else {
-    if (-not $allToolsAvailable) {
-        Print-Error "Cannot proceed due to missing tools."
-        Exit 1
-    }
+    Print-Error "Cannot proceed due to missing tools."
+    Exit 1
 }
 
 # Check if URL is provided for download
@@ -739,7 +817,8 @@ if ($AudioOnly) {
         
         $ytArgs += @(
             "--format", "`"${formatString}`"",
-            "--merge-output-format", "mp4/mkv"
+            "--merge-output-format", "mp4/mkv",
+            "--remux-video", "mp4/mkv"
         )
 
         if ($MinResolution -gt 0) {
@@ -749,7 +828,7 @@ if ($AudioOnly) {
         }
     } else {
         $ytArgs += @(
-            "--format", "`"bestvideo${resolutionFilter}+bestaudio/best${resolutionFilter}`""
+            "--format", "`"bestvideo${resolutionFilter}+bestaudio/best${resolutionFilter}`"",
             "--merge-output-format", "mkv",
             "--remux-video", "mkv"
         )
