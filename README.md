@@ -30,7 +30,7 @@ You have two options — pick the one that suits you:
 | **Interface language** | Bilingual (auto-detects Russian or English) | English only |
 | **Video format** | MP4 (H.264/AAC), MKV fallback | Adjustable, default: best available (MKV) |
 | **Audio format** | MP3 | Adjustable, default: best available |
-| **Resolution** | Up to 1080p | Adjustable, default: up to 1080p |
+| **Resolution** | 1080p | Adjustable, e.g. 2160p (default: 1080p) |
 | **Batch downloads** | Drop a `links.txt` in Downloads | `-File "path\to\urls.txt"` |
 | **Cookies** | Choose from a menu | `-CookiesFrom firefox` |
 | **Tool updates** | Checks on launch (max once per day) | Opt-in via environment variable |
@@ -43,7 +43,7 @@ You have two options — pick the one that suits you:
 2. **Double-click it**
 3. **Paste a video URL** when prompted
 4. **Choose your mode:**
-   - `[1]` Video (prefers MP4, up to 1080p)
+   - `[1]` Video (prefers MP4, 1080p)
    - `[2]` Audio (MP3)
 5. **Optionally select a browser** for cookies (needed for age-restricted content)
 6. **Done!** Files land in `Downloads\yt-dlp`
@@ -93,8 +93,8 @@ If you prefer the PowerShell script directly, here are some examples:
 # 720p video saved as MP4 if possible
 .\Get-WebMedia.ps1 "https://youtu.be/abc123" -MaxResolution 720 -MP4Output
 
-# Video at minimum 720p, maximum 1080p
-.\Get-WebMedia.ps1 "https://youtu.be/abc123" -MinResolution 720 -MaxResolution 1080
+# Video at minimum 1080p, maximum 2160p
+.\Get-WebMedia.ps1 "https://youtu.be/abc123" -MinResolution 1080 -MaxResolution 2160
 
 # Age-restricted content using Firefox cookies (skipping the prompt)
 # Cookie extraction from Chrome and some Chromium-based browsers is currently broken.

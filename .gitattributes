@@ -2,7 +2,3 @@
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
-
-# Or tell Git to not touch these files at all
-*.bat binary
-*.cmd binary
